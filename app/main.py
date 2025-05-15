@@ -41,9 +41,13 @@ async def websocket_endpoint(websocket: WebSocket, kind_id: str):
             # Nachricht empfangen (z. B. "+1")
             data = await websocket.receive_text()
 
-            # An alle Clients dieses Kindes weiterleiten
+            # Nur an andere Clients weiterleiten
             for client in clients_per_kind[kind_id]:
-                await client.send_text(data)
+                if client != websocket:
+                    await client.send_text(data)
+                    print(f"[{kind_id}] Nachricht empfangen: {data}")
+
+
 
     except WebSocketDisconnect:
         clients_per_kind[kind_id].remove(websocket)

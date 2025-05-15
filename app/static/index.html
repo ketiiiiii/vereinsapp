@@ -25,6 +25,17 @@
     function sendePlusEins() {
       socket.send("+1");
     }
+
+
+    socket.onerror = (event) => {
+  console.error("WebSocket-Fehler:", event);
+};
+
+socket.onclose = () => {
+  console.warn("WebSocket geschlossen.");
+};
+
+
   </script>
 </body>
 </html>
