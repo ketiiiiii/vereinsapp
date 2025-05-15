@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Live Sponsoring</title>
+</head>
+<body>
+  <h2>Kind ID: <span id="kind_id">123</span></h2>
+  <div>Runden: <span id="runden">0</span></div>
+  <button onclick="sendePlusEins()">+1 Runde</button>
+
+  <script>
+    const kind_id = document.getElementById("kind_id").innerText;
+    const rundenEl = document.getElementById("runden");
+    let runden = 0;
+
+    const socket = new WebSocket(`wss://${window.location.host}/ws/${kind_id}`);
+
+    socket.onmessage = (event) => {
+      if (event.data === "+1") {
+        runden++;
+        rundenEl.innerText = runden;
+      }
+    };
+
+    function sendePlusEins() {
+      socket.send("+1");
+    }
+  </script>
+</body>
+</html>
