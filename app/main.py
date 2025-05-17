@@ -102,32 +102,8 @@ async def websocket_endpoint(websocket: WebSocket, kind_id: str):
         clients_per_kind[kind_id].remove(websocket)
 
 
-@app.websocket("/ws/run/{run_id}")
-async def ws_run(websocket: WebSocket, run_id: str):
-    await websocket.accept()
-
-    if run_id not in clients_per_run:
-        clients_per_run[run_id] = []
-    clients_per_run[run_id].append(websocket)
-
-    try:
-        while True:
-            raw = await websocket.receive_text()
-            data = json.loads(raw)  # erwartet: { "email": "...", "artikel": "Bier", "punkte": 1 }
-
-            # speichern
-            if run_id not in live_points:
-                live_points[run_id] = []
-            live_points[run_id].append(data)
-
-            # an alle senden
-            for client in clients_per_run[run_id]:
-                await client.send_text(json.dumps(live_points[run_id]))
-
-    except WebSocketDisconnect:
-        clients_per_run[run_id].remove(websocket)
-
-
+clients_per_run = {}
+aggregated_points = {}
 
 @app.websocket("/ws/run/{run_id}")
 async def ws_run(websocket: WebSocket, run_id: str):
@@ -150,19 +126,17 @@ async def ws_run(websocket: WebSocket, run_id: str):
             punkte = int(data.get("punkte", 0))
 
             if not email:
-                continue  # skip if no email
+                continue
 
-            # Punktestand initialisieren
             if email not in aggregated_points[run_id]:
                 aggregated_points[run_id][email] = {
                     "gruppe": gruppe,
                     "gesamt": 0
                 }
 
-            # Punkte addieren
             aggregated_points[run_id][email]["gesamt"] += punkte
 
-            # Live-Auswertung vorbereiten
+            # Live-Daten für alle Clients aufbereiten
             result = []
             for mail, info in aggregated_points[run_id].items():
                 result.append({
@@ -171,11 +145,10 @@ async def ws_run(websocket: WebSocket, run_id: str):
                     "gesamt": info["gesamt"]
                 })
 
-            print(f"[{run_id}] Result →", result)
-
             for client in clients_per_run[run_id]:
                 await client.send_text(json.dumps(result))
 
     except WebSocketDisconnect:
         clients_per_run[run_id].remove(websocket)
+
 

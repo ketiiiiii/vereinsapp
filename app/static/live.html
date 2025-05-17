@@ -50,29 +50,48 @@
   <script>
     const run_id = "abc123"; // später dynamisch setzen
     const email = "player1@xyz.com"; // später aus JWT
-    const socket = new WebSocket(`wss://${window.location.host}/ws/run/${run_id}`);
+    const socket = new WebSocket(`ws://${window.location.host}/ws/run/${run_id}`);
+
+    socket.onopen = () => {
+      console.log("✅ WebSocket verbunden.");
+    };
+    socket.onerror = (e) => {
+      console.error("❌ WebSocket-Fehler", e);
+    };
+    socket.onclose = () => {
+      console.warn("🔌 WebSocket wurde geschlossen.");
+    };
 
     socket.onmessage = event => {
       const daten = JSON.parse(event.data);
       const liste = document.getElementById("liste");
       liste.innerHTML = "";
       daten.forEach(e => {
+        const punkte = Number(e.gesamt) || 0;
         const li = document.createElement("li");
-        li.innerText = `${e.gruppe} – ${e.email}: ${e.gesamt} Punkte`;
+        li.innerText = `${e.gruppe} – ${e.email}: ${punkte} Punkte`;
         liste.appendChild(li);
       });
     };
 
     function sende() {
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        console.warn("⚠️ WebSocket ist nicht verbunden oder bereits geschlossen.");
+        return;
+      }
+
       const artikel = document.getElementById("artikel").value;
       const punkte = parseInt(document.getElementById("punkte").value);
       const gruppe = document.getElementById("gruppe").value;
+
       const daten = {
         email,
         artikel,
         punkte,
         gruppe
       };
+
+      console.log("→ sende WebSocket:", daten);
       socket.send(JSON.stringify(daten));
     }
   </script>
