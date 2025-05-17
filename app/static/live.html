@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Live Punkteüberblick</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      background: #f9f9f9;
+    }
+    h1 {
+      font-size: 1.8rem;
+    }
+    .input-row {
+      margin: 1rem 0;
+    }
+    input, button {
+      padding: 0.5rem;
+      font-size: 1rem;
+    }
+    button {
+      margin-left: 0.5rem;
+    }
+    ul {
+      margin-top: 2rem;
+      list-style: none;
+      padding: 0;
+    }
+    li {
+      background: #fff;
+      margin-bottom: 0.5rem;
+      padding: 0.75rem;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <h1>Live-Modus: Punkte für Run <span id="run_id">abc123</span></h1>
+  <div class="input-row">
+    <label>Artikel: <input id="artikel" value="Bier"></label>
+    <label>Punkte: <input id="punkte" value="1" type="number" min="1"></label>
+    <button onclick="sende()">+ Hinzufügen</button>
+  </div>
+  <ul id="liste"></ul>
+
+  <script>
+    const run_id = "abc123"; // später dynamisch setzen
+    const email = "player1@xyz.com"; // später aus JWT
+    const socket = new WebSocket(`wss://${window.location.host}/ws/run/${run_id}`);
+
+    socket.onmessage = event => {
+      const daten = JSON.parse(event.data);
+      const liste = document.getElementById("liste");
+      liste.innerHTML = "";
+      daten.forEach(e => {
+        const li = document.createElement("li");
+        li.innerText = `${e.email}: ${e.artikel} (${e.punkte} Punkte)`;
+        liste.appendChild(li);
+      });
+    };
+
+    function sende() {
+      const artikel = document.getElementById("artikel").value;
+      const punkte = parseInt(document.getElementById("punkte").value);
+      const daten = {
+        email,
+        artikel,
+        punkte
+      };
+      socket.send(JSON.stringify(daten));
+    }
+  </script>
+</body>
+</html>
