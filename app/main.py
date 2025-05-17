@@ -2,8 +2,12 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+
+
 from app.models import Kind, neues_kind
-from app import invite
+from app.invite import invite_router
+
+
 from typing import Dict
 import os
 from pydantic import BaseModel
