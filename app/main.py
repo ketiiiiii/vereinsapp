@@ -26,16 +26,6 @@ def serve_index():
     return FileResponse(os.path.join(os.path.dirname(__file__), "static", "index.html"))
 
 
-@app.post("/api/kinder")
-def kind_anlegen(name: str = Body(...), klasse: Optional[str] = Body(None)):
-    kind = neues_kind(name, klasse)
-    kinder[kind.id] = kind
-    return kind
-
-@app.get("/api/kinder")
-def alle_kinder():
-    return list(kinder.values())
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -47,7 +37,16 @@ app.add_middleware(
 # Speicher für aktive WebSocket-Verbindungen
 clients_per_kind = {}
 
+@app.post("/api/kinder")
+def kind_anlegen(name: str = Body(...), klasse: Optional[str] = Body(None)):
+    kind = neues_kind(name, klasse)
+    kinder[kind.id] = kind
+    return kind
 
+@app.get("/api/kinder")
+def alle_kinder():
+    print("kinder juhu")
+    return list(kinder.values())
 
 
 @app.get("/api/kinder/{kind_id}")
