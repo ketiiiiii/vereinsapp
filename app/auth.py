@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from fastapi import Form
 from app.invite import INVITE_SECRET, INVITE_ALGO
 from jose import JWTError
+from fastapi import Header
 
 
 
@@ -107,6 +108,34 @@ def register_with_token(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
+
 @router.get("/assignments/{email}")
 def get_assignment(email: str):
     return player_assignments.get(email, {"error": "Not assigned"})
+
+
+def get_current_user(authorization: str = Header(...)):
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid token format")
+    token = authorization.split(" ")[1]
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return {
+            "email": payload.get("sub"),
+            "role": payload.get("role")
+        }
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Token ungültig oder abgelaufen")
+    
+
+
+@router.get("/me")
+def read_me(user = Depends(get_current_user)):
+    email = user["email"]
+    role = user["role"]
+    assignment = player_assignments.get(email)
+    return {
+        "email": email,
+        "role": role,
+        "assignment": assignment
+    }
