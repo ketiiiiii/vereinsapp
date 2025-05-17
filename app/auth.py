@@ -12,6 +12,8 @@ from jose import JWTError
 
 router = APIRouter(prefix="/auth")
 
+# Temporärer Speicher für Player-Zuweisung
+player_assignments = {}  # email → { run_id, gruppe }
 
 
 # Secret Key & Passwort-Hashing
@@ -94,7 +96,12 @@ def register_with_token(
     user = User(email=email, hashed_password=hashed, role=role)
     users_db[email] = user
 
-    # später: Player zu Run + Gruppe zuordnen
+    # Player zuordnen (aus Invite-Token)
+    player_assignments[user.email] = {
+        "run_id": run_id,
+        "gruppe": gruppe
+}
+
 
     access_token = create_access_token({"sub": user.email, "role": user.role})
     return {"access_token": access_token, "token_type": "bearer"}
