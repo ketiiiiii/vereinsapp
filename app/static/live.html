@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Live Punkteüberblick</title>
+  <title>Live Punkteübersicht</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
@@ -42,6 +42,7 @@
   <div class="input-row">
     <label>Artikel: <input id="artikel" value="Bier"></label>
     <label>Punkte: <input id="punkte" value="1" type="number" min="1"></label>
+    <label>Gruppe: <input id="gruppe" value="TeamA"></label>
     <button onclick="sende()">+ Hinzufügen</button>
   </div>
   <ul id="liste"></ul>
@@ -57,7 +58,7 @@
       liste.innerHTML = "";
       daten.forEach(e => {
         const li = document.createElement("li");
-        li.innerText = `${e.email}: ${e.artikel} (${e.punkte} Punkte)`;
+        li.innerText = `${e.gruppe} – ${e.email}: ${e.gesamt} Punkte`;
         liste.appendChild(li);
       });
     };
@@ -65,10 +66,12 @@
     function sende() {
       const artikel = document.getElementById("artikel").value;
       const punkte = parseInt(document.getElementById("punkte").value);
+      const gruppe = document.getElementById("gruppe").value;
       const daten = {
         email,
         artikel,
-        punkte
+        punkte,
+        gruppe
       };
       socket.send(JSON.stringify(daten));
     }

@@ -20,6 +20,9 @@ import json
 kinder: Dict[str, Kind] = {}
 live_points = {}  # run_id → List[dict] mit: email, gruppe, artikel, punkte
 clients_per_run = {}
+aggregated_points = {}  # run_id → { email: { gruppe, gesamt } }
+
+
 
 app = FastAPI()
 # Auth-Router einbinden
@@ -120,6 +123,48 @@ async def ws_run(websocket: WebSocket, run_id: str):
             # an alle senden
             for client in clients_per_run[run_id]:
                 await client.send_text(json.dumps(live_points[run_id]))
+
+    except WebSocketDisconnect:
+        clients_per_run[run_id].remove(websocket)
+
+
+
+@app.websocket("/ws/run/{run_id}")
+async def ws_run(websocket: WebSocket, run_id: str):
+    await websocket.accept()
+    if run_id not in clients_per_run:
+        clients_per_run[run_id] = []
+    clients_per_run[run_id].append(websocket)
+
+    if run_id not in aggregated_points:
+        aggregated_points[run_id] = {}
+
+    try:
+        while True:
+            data = json.loads(await websocket.receive_text())
+            email = data["email"]
+            gruppe = data.get("gruppe", "Unbekannt")
+            punkte = int(data["punkte"])
+
+            if email not in aggregated_points[run_id]:
+                aggregated_points[run_id][email] = {
+                    "gruppe": gruppe,
+                    "gesamt": 0
+                }
+
+            aggregated_points[run_id][email]["gesamt"] += punkte
+
+            # Aufbereitung fürs Frontend
+            result = []
+            for e, val in aggregated_points[run_id].items():
+                result.append({
+                    "email": e,
+                    "gruppe": val["gruppe"],
+                    "gesamt": val["gesamt"]
+                })
+
+            for client in clients_per_run[run_id]:
+                await client.send_text(json.dumps(result))
 
     except WebSocketDisconnect:
         clients_per_run[run_id].remove(websocket)
