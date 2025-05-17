@@ -25,6 +25,17 @@ app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__
 def serve_index():
     return FileResponse(os.path.join(os.path.dirname(__file__), "static", "index.html"))
 
+
+@app.post("/api/kinder")
+def kind_anlegen(name: str = Body(...), klasse: Optional[str] = Body(None)):
+    kind = neues_kind(name, klasse)
+    kinder[kind.id] = kind
+    return kind
+
+@app.get("/api/kinder")
+def alle_kinder():
+    return list(kinder.values())
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -37,15 +48,7 @@ app.add_middleware(
 clients_per_kind = {}
 
 
-@app.post("/api/kinder")
-def kind_anlegen(name: str = Body(...), klasse: Optional[str] = Body(None)):
-    kind = neues_kind(name, klasse)
-    kinder[kind.id] = kind
-    return kind
 
-@app.get("/api/kinder")
-def alle_kinder():
-    return list(kinder.values())
 
 @app.get("/api/kinder/{kind_id}")
 def get_kind(kind_id: str):
