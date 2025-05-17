@@ -2,7 +2,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from models import Kind, neues_kind
+from app.models import Kind, neues_kind
 from typing import Dict
 import os
 from pydantic import BaseModel
