@@ -23,6 +23,7 @@ app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__
 # Root-Route zeigt index.html
 @app.get("/")
 def serve_index():
+    print("test")
     return FileResponse(os.path.join(os.path.dirname(__file__), "static", "index.html"))
 
 
