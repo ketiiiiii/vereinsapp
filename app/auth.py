@@ -71,7 +71,9 @@ def login(user_in: UserIn):
     token = create_access_token({"sub": user.email, "role": user.role})
     return {"access_token": token, "token_type": "bearer"}
 
-@router.post("/auth/register_with_token", response_model=Token)
+
+
+@router.post("/register_with_token", response_model=Token)
 def register_with_token(
     email: str = Form(...),
     password: str = Form(...),
@@ -92,7 +94,8 @@ def register_with_token(
     user = User(email=email, hashed_password=hashed, role=role)
     users_db[email] = user
 
-    # 🔗 Hier später: Player zu Run & Gruppe speichern
+    # später: Player zu Run + Gruppe zuordnen
 
     access_token = create_access_token({"sub": user.email, "role": user.role})
     return {"access_token": access_token, "token_type": "bearer"}
+
