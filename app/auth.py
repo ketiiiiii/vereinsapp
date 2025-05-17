@@ -5,7 +5,11 @@ from passlib.context import CryptContext
 from typing import Optional, Literal
 from datetime import datetime, timedelta
 
-router = APIRouter()
+
+
+router = APIRouter(prefix="/auth")
+
+
 
 # Secret Key & Passwort-Hashing
 SECRET_KEY = "supersecret"  # TODO: später sicher machen
