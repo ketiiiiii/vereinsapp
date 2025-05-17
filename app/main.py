@@ -7,15 +7,17 @@ from typing import Dict
 import os
 from pydantic import BaseModel
 from typing import Optional
-import uuid
 from fastapi import Body
-
-
+from app import auth
 
 
 kinder: Dict[str, Kind] = {}
 
+
 app = FastAPI()
+# Auth-Router einbinden
+app.include_router(auth.router)
+
 
 # Statische Dateien mounten (z. B. HTML)
 app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static")), name="static")
@@ -46,7 +48,6 @@ def kind_anlegen(name: str = Body(...), klasse: Optional[str] = Body(None)):
 
 @app.get("/api/kinder")
 def alle_kinder():
-    print("kinder juhu")
     return list(kinder.values())
 
 
