@@ -4,6 +4,9 @@ from jose import jwt, JWTError
 from passlib.context import CryptContext
 from typing import Optional, Literal
 from datetime import datetime, timedelta
+from fastapi import Form
+from app.invite import INVITE_SECRET, INVITE_ALGO
+from jose import JWTError
 
 
 
@@ -67,3 +70,29 @@ def login(user_in: UserIn):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     token = create_access_token({"sub": user.email, "role": user.role})
     return {"access_token": token, "token_type": "bearer"}
+
+@router.post("/auth/register_with_token", response_model=Token)
+def register_with_token(
+    email: str = Form(...),
+    password: str = Form(...),
+    role: str = Form(...),
+    token: str = Form(...)
+):
+    try:
+        payload = jwt.decode(token, INVITE_SECRET, algorithms=[INVITE_ALGO])
+        run_id = payload.get("run_id")
+        gruppe = payload.get("gruppe")
+    except JWTError:
+        raise HTTPException(status_code=400, detail="Ungültiger oder abgelaufener Token")
+
+    if email in users_db:
+        raise HTTPException(status_code=400, detail="User already exists")
+
+    hashed = hash_password(password)
+    user = User(email=email, hashed_password=hashed, role=role)
+    users_db[email] = user
+
+    # 🔗 Hier später: Player zu Run & Gruppe speichern
+
+    access_token = create_access_token({"sub": user.email, "role": user.role})
+    return {"access_token": access_token, "token_type": "bearer"}
