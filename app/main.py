@@ -13,11 +13,13 @@ import os
 from pydantic import BaseModel
 from typing import Optional
 from fastapi import Body
-
+from fastapi import WebSocket
+import json
 
 
 kinder: Dict[str, Kind] = {}
-
+live_points = {}  # run_id → List[dict] mit: email, gruppe, artikel, punkte
+clients_per_run = {}
 
 app = FastAPI()
 # Auth-Router einbinden
@@ -95,3 +97,29 @@ async def websocket_endpoint(websocket: WebSocket, kind_id: str):
 
     except WebSocketDisconnect:
         clients_per_kind[kind_id].remove(websocket)
+
+
+@app.websocket("/ws/run/{run_id}")
+async def ws_run(websocket: WebSocket, run_id: str):
+    await websocket.accept()
+
+    if run_id not in clients_per_run:
+        clients_per_run[run_id] = []
+    clients_per_run[run_id].append(websocket)
+
+    try:
+        while True:
+            raw = await websocket.receive_text()
+            data = json.loads(raw)  # erwartet: { "email": "...", "artikel": "Bier", "punkte": 1 }
+
+            # speichern
+            if run_id not in live_points:
+                live_points[run_id] = []
+            live_points[run_id].append(data)
+
+            # an alle senden
+            for client in clients_per_run[run_id]:
+                await client.send_text(json.dumps(live_points[run_id]))
+
+    except WebSocketDisconnect:
+        clients_per_run[run_id].remove(websocket)
