@@ -132,6 +132,7 @@ async def ws_run(websocket: WebSocket, run_id: str):
 @app.websocket("/ws/run/{run_id}")
 async def ws_run(websocket: WebSocket, run_id: str):
     await websocket.accept()
+
     if run_id not in clients_per_run:
         clients_per_run[run_id] = []
     clients_per_run[run_id].append(websocket)
@@ -141,30 +142,40 @@ async def ws_run(websocket: WebSocket, run_id: str):
 
     try:
         while True:
-            data = json.loads(await websocket.receive_text())
-            email = data["email"]
-            gruppe = data.get("gruppe", "Unbekannt")
-            punkte = int(data["punkte"])
+            raw = await websocket.receive_text()
+            data = json.loads(raw)
 
+            email = data.get("email")
+            gruppe = data.get("gruppe", "Unbekannt")
+            punkte = int(data.get("punkte", 0))
+
+            if not email:
+                continue  # skip if no email
+
+            # Punktestand initialisieren
             if email not in aggregated_points[run_id]:
                 aggregated_points[run_id][email] = {
                     "gruppe": gruppe,
                     "gesamt": 0
                 }
 
+            # Punkte addieren
             aggregated_points[run_id][email]["gesamt"] += punkte
 
-            # Aufbereitung fürs Frontend
+            # Live-Auswertung vorbereiten
             result = []
-            for e, val in aggregated_points[run_id].items():
+            for mail, info in aggregated_points[run_id].items():
                 result.append({
-                    "email": e,
-                    "gruppe": val["gruppe"],
-                    "gesamt": val["gesamt"]
+                    "email": mail,
+                    "gruppe": info["gruppe"],
+                    "gesamt": info["gesamt"]
                 })
+
+            print(f"[{run_id}] Result →", result)
 
             for client in clients_per_run[run_id]:
                 await client.send_text(json.dumps(result))
 
     except WebSocketDisconnect:
         clients_per_run[run_id].remove(websocket)
+
