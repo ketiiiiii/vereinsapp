@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from app.models import Kind, neues_kind
+from app import invite
 from typing import Dict
 import os
 from pydantic import BaseModel
@@ -17,7 +18,7 @@ kinder: Dict[str, Kind] = {}
 app = FastAPI()
 # Auth-Router einbinden
 app.include_router(auth.router)
-
+app.include_router(invite.invite_router)
 
 # Statische Dateien mounten (z. B. HTML)
 app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static")), name="static")
