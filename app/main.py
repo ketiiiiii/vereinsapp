@@ -22,6 +22,7 @@ kinder: Dict[str, Kind] = {}
 app = FastAPI()
 # Auth-Router einbinden
 app.include_router(auth_router)
+app.include_router(invite_router)
 
 
 # Statische Dateien mounten (z. B. HTML)
