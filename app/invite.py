@@ -1,6 +1,10 @@
 from fastapi import APIRouter, HTTPException
 from jose import jwt
 from datetime import datetime, timedelta
+from fastapi import HTTPException
+from jose import JWTError
+
+
 
 invite_router = APIRouter()
 
@@ -23,3 +27,17 @@ def generate_invite(run_id: str, gruppe: str = None):
         "link": f"https://vereinsapp.onrender.com/join/{token}",
         "token": token
     }
+
+@invite_router.get("/join/{token}")
+def join_by_token(token: str):
+    try:
+        payload = jwt.decode(token, INVITE_SECRET, algorithms=[INVITE_ALGO])
+        run_id = payload.get("run_id")
+        gruppe = payload.get("gruppe")
+        return {
+            "message": "Token gültig",
+            "run_id": run_id,
+            "gruppe": gruppe
+        }
+    except JWTError:
+        raise HTTPException(status_code=400, detail="Ungültiger oder abgelaufener Token")
