@@ -2,8 +2,18 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from models import Kind, neues_kind
+from typing import Dict
 import os
+from pydantic import BaseModel
+from typing import Optional
+import uuid
+from fastapi import Body
 
+
+
+
+kinder: Dict[str, Kind] = {}
 
 app = FastAPI()
 
@@ -25,6 +35,31 @@ app.add_middleware(
 
 # Speicher für aktive WebSocket-Verbindungen
 clients_per_kind = {}
+
+
+@app.post("/api/kinder")
+def kind_anlegen(name: str = Body(...), klasse: Optional[str] = Body(None)):
+    kind = neues_kind(name, klasse)
+    kinder[kind.id] = kind
+    return kind
+
+@app.get("/api/kinder")
+def alle_kinder():
+    return list(kinder.values())
+
+@app.get("/api/kinder/{kind_id}")
+def get_kind(kind_id: str):
+    if kind_id in kinder:
+        return kinder[kind_id]
+    return {"error": "Kind nicht gefunden"}
+
+@app.post("/api/kinder/{kind_id}/runde")
+def runde_plus(kind_id: str):
+    if kind_id in kinder:
+        kinder[kind_id].runden += 1
+        return {"runden": kinder[kind_id].runden}
+    return {"error": "Kind nicht gefunden"}
+
 
 @app.websocket("/ws/{kind_id}")
 async def websocket_endpoint(websocket: WebSocket, kind_id: str):
