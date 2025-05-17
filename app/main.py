@@ -105,6 +105,8 @@ async def websocket_endpoint(websocket: WebSocket, kind_id: str):
 clients_per_run = {}
 aggregated_points = {}
 
+aggregated_points = {}  # run_id → { email → { gruppe, gesamt, artikel: { name: anzahl } } }
+
 @app.websocket("/ws/run/{run_id}")
 async def ws_run(websocket: WebSocket, run_id: str):
     await websocket.accept()
@@ -124,6 +126,7 @@ async def ws_run(websocket: WebSocket, run_id: str):
             email = data.get("email")
             gruppe = data.get("gruppe", "Unbekannt")
             punkte = int(data.get("punkte", 0))
+            artikel = data.get("artikel", "Unbekannt")
 
             if not email:
                 continue
@@ -131,18 +134,22 @@ async def ws_run(websocket: WebSocket, run_id: str):
             if email not in aggregated_points[run_id]:
                 aggregated_points[run_id][email] = {
                     "gruppe": gruppe,
-                    "gesamt": 0
+                    "gesamt": 0,
+                    "artikel": {}
                 }
 
-            aggregated_points[run_id][email]["gesamt"] += punkte
+            user_data = aggregated_points[run_id][email]
+            user_data["gesamt"] += punkte
+            user_data["gruppe"] = gruppe  # Optional: aktualisieren
+            user_data["artikel"][artikel] = user_data["artikel"].get(artikel, 0) + 1
 
-            # Live-Daten für alle Clients aufbereiten
             result = []
             for mail, info in aggregated_points[run_id].items():
                 result.append({
                     "email": mail,
                     "gruppe": info["gruppe"],
-                    "gesamt": info["gesamt"]
+                    "gesamt": info["gesamt"],
+                    "artikel": info["artikel"]
                 })
 
             for client in clients_per_run[run_id]:
@@ -150,5 +157,6 @@ async def ws_run(websocket: WebSocket, run_id: str):
 
     except WebSocketDisconnect:
         clients_per_run[run_id].remove(websocket)
+
 
 

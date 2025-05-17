@@ -66,10 +66,17 @@
       const daten = JSON.parse(event.data);
       const liste = document.getElementById("liste");
       liste.innerHTML = "";
+
       daten.forEach(e => {
         const punkte = Number(e.gesamt) || 0;
+        const artikelListe = e.artikel || {}; // neues Feld erwartet
+
+        const artikelText = Object.entries(artikelListe)
+          .map(([k, v]) => `${k}: ${v}`)
+          .join(", ");
+
         const li = document.createElement("li");
-        li.innerText = `${e.gruppe} – ${e.email}: ${punkte} Punkte`;
+        li.innerText = `${e.gruppe} – ${e.email}: ${punkte} Punkte (${artikelText})`;
         liste.appendChild(li);
       });
     };
