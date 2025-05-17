@@ -106,3 +106,7 @@ def register_with_token(
     access_token = create_access_token({"sub": user.email, "role": user.role})
     return {"access_token": access_token, "token_type": "bearer"}
 
+
+@router.get("/assignments/{email}")
+def get_assignment(email: str):
+    return player_assignments.get(email, {"error": "Not assigned"})
