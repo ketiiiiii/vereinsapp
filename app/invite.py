@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from jose import jwt
 from datetime import datetime, timedelta
 from fastapi import HTTPException
@@ -21,10 +21,11 @@ def create_invite_token(run_id: str, gruppe: str = None):
     return jwt.encode(payload, INVITE_SECRET, algorithm=INVITE_ALGO)
 
 @invite_router.get("/invite/run/{run_id}")
-def generate_invite(run_id: str, gruppe: str = None):
+def generate_invite(run_id: str, gruppe: str = None, request: Request = None):
     token = create_invite_token(run_id, gruppe)
+    base_url = str(request.base_url).rstrip("/")
     return {
-        "link": f"https://vereinsapp.onrender.com/static/live.html?token={token}",
+        "link": f"{base_url}/static/live.html?token={token}",
         "token": token
     }
 

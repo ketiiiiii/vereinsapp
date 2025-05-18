@@ -107,11 +107,12 @@
 
     if (token) {
       try {
-        const payload = JSON.parse(atob(token.split(".")[1]));
+        const decodedToken = decodeURIComponent(token).replace(/^"|"$/g, "");
+        const payload = JSON.parse(atob(decodedToken.split(".")[1]));
         email = payload.sub;
         console.log("🎫 Token erkannt:", email);
       } catch (e) {
-        console.warn("❌ Ungültiges Token");
+        console.warn("❌ Ungültiges Token", e);
       }
     } else {
       console.warn("⚠️ Kein Token gefunden in URL");
@@ -138,12 +139,6 @@
         const punkte = Number(e.gesamt) || 0;
         const artikelListe = e.artikel || {};
 
-        if (e.email === email) {
-          Object.entries(artikelListe).forEach(([k, v]) => {
-            eigeneArtikel[k] = v;
-          });
-        }
-
         const artikelText = Object.entries(artikelListe)
           .map(([k, v]) => `${k}: ${v}`)
           .join(", ");
@@ -154,17 +149,20 @@
 
         if (!gruppenMap[e.gruppe]) gruppenMap[e.gruppe] = 0;
         gruppenMap[e.gruppe] += punkte;
+
+        // Mengenanzeige für aktuellen Nutzer
+        if (e.email === email) {
+          Object.entries(artikelListe).forEach(([k, v]) => {
+            const feld = document.getElementById("menge-" + k);
+            if (feld) feld.innerText = v;
+          });
+        }
       });
 
       Object.entries(gruppenMap).forEach(([gruppe, summe]) => {
         const li = document.createElement("li");
         li.innerText = `⭐ ${gruppe}: ${summe} Punkte`;
         gruppenSummen.appendChild(li);
-      });
-
-      ["Bier", "Shot", "Schnaps"].forEach(art => {
-        const m = document.getElementById("menge-" + art);
-        if (m) m.innerText = eigeneArtikel[art] || 0;
       });
     };
 
