@@ -102,17 +102,30 @@
 
   <script>
     const run_id = "abc123";
-    const token = new URLSearchParams(window.location.search).get("token");
+    let token = new URLSearchParams(window.location.search).get("token");
+    if (token?.includes('{')) {
+      try {
+        const obj = JSON.parse(token);
+        token = obj.token;
+      } catch (e) {
+        console.warn("⚠️ Fehler beim JSON-Token-Fix", e);
+      }
+    }
+
     let email = "";
 
     if (token) {
       try {
-        const decodedToken = decodeURIComponent(token).replace(/^"|"$/g, "");
-        const payload = JSON.parse(atob(decodedToken.split(".")[1]));
-        email = payload.sub;
+        const cleanedToken = decodeURIComponent(token).replace(/^"|"$/g, "");
+        const payloadPart = cleanedToken.split('.')[1];
+        const base64 = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=');
+        const payload = JSON.parse(atob(padded));
+        console.log("🔍 Payload Inhalt:", payload);
+        email = payload?.sub || "";
         console.log("🎫 Token erkannt:", email);
       } catch (e) {
-        console.warn("❌ Ungültiges Token", e);
+        console.warn("❌ Fehler beim Dekodieren des Tokens", e);
       }
     } else {
       console.warn("⚠️ Kein Token gefunden in URL");
@@ -139,6 +152,12 @@
         const punkte = Number(e.gesamt) || 0;
         const artikelListe = e.artikel || {};
 
+        if (e.email === email) {
+          Object.entries(artikelListe).forEach(([k, v]) => {
+            eigeneArtikel[k] = v;
+          });
+        }
+
         const artikelText = Object.entries(artikelListe)
           .map(([k, v]) => `${k}: ${v}`)
           .join(", ");
@@ -149,20 +168,17 @@
 
         if (!gruppenMap[e.gruppe]) gruppenMap[e.gruppe] = 0;
         gruppenMap[e.gruppe] += punkte;
-
-        // Mengenanzeige für aktuellen Nutzer
-        if (e.email === email) {
-          Object.entries(artikelListe).forEach(([k, v]) => {
-            const feld = document.getElementById("menge-" + k);
-            if (feld) feld.innerText = v;
-          });
-        }
       });
 
       Object.entries(gruppenMap).forEach(([gruppe, summe]) => {
         const li = document.createElement("li");
         li.innerText = `⭐ ${gruppe}: ${summe} Punkte`;
         gruppenSummen.appendChild(li);
+      });
+
+      ["Bier", "Shot", "Schnaps"].forEach(art => {
+        const feld = document.getElementById("menge-" + art);
+        if (feld) feld.innerText = eigeneArtikel[art] || 0;
       });
     };
 
