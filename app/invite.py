@@ -24,9 +24,10 @@ def create_invite_token(run_id: str, gruppe: str = None):
 def generate_invite(run_id: str, gruppe: str = None):
     token = create_invite_token(run_id, gruppe)
     return {
-        "link": f"https://vereinsapp.onrender.com/join/{token}",
+        "link": f"https://vereinsapp.onrender.com/static/live.html?token={token}",
         "token": token
     }
+
 
 @invite_router.get("/join/{token}")
 def join_by_token(token: str):
