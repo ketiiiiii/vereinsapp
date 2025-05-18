@@ -16,14 +16,14 @@
     .input-row {
       margin: 1rem 0;
     }
-    input, button {
+    input, select, button {
       padding: 0.5rem;
       font-size: 1rem;
     }
     button {
       margin-left: 0.5rem;
     }
-    ul {
+    ul, #gruppenSummen {
       margin-top: 2rem;
       list-style: none;
       padding: 0;
@@ -35,42 +35,114 @@
       border-radius: 8px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      text-align: center;
+    }
+    th {
+      background: #f0f0f0;
+    }
   </style>
 </head>
 <body>
   <h1>Live-Modus: Punkte für Run <span id="run_id">abc123</span></h1>
   <div class="input-row">
-    <label>Artikel: <input id="artikel" value="Bier"></label>
-    <label>Punkte: <input id="punkte" value="1" type="number" min="1"></label>
-    <label>Gruppe: <input id="gruppe" value="TeamA"></label>
-    <button onclick="sende()">+ Hinzufügen</button>
+    <label>Gruppe: 
+      <select id="gruppe">
+        <option value="Team A">Team A</option>
+        <option value="Team B">Team B</option>
+        <option value="Team C">Team C</option>
+      </select>
+    </label>
   </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Getränk</th>
+        <th>Punkte</th>
+        <th>−</th>
+        <th>Menge</th>
+        <th>+</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Bier</td>
+        <td>1</td>
+        <td><button onclick="sendeArtikel('Bier', -1)">−</button></td>
+        <td id="menge-Bier">0</td>
+        <td><button onclick="sendeArtikel('Bier', 1)">+</button></td>
+      </tr>
+      <tr>
+        <td>Shot</td>
+        <td>1</td>
+        <td><button onclick="sendeArtikel('Shot', -1)">−</button></td>
+        <td id="menge-Shot">0</td>
+        <td><button onclick="sendeArtikel('Shot', 1)">+</button></td>
+      </tr>
+      <tr>
+        <td>Schnaps</td>
+        <td>1</td>
+        <td><button onclick="sendeArtikel('Schnaps', -1)">−</button></td>
+        <td id="menge-Schnaps">0</td>
+        <td><button onclick="sendeArtikel('Schnaps', 1)">+</button></td>
+      </tr>
+    </tbody>
+  </table>
+
   <ul id="liste"></ul>
+  <ul id="gruppenSummen"></ul>
 
   <script>
-    const run_id = "abc123"; // später dynamisch setzen
-    const email = "player1@xyz.com"; // später aus JWT
+    const run_id = "abc123";
+    const token = new URLSearchParams(window.location.search).get("token");
+    let email = "";
+
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        email = payload.sub;
+        console.log("🎫 Token erkannt:", email);
+      } catch (e) {
+        console.warn("❌ Ungültiges Token");
+      }
+    } else {
+      console.warn("⚠️ Kein Token gefunden in URL");
+    }
+
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
     const socket = new WebSocket(`${protocol}://${window.location.host}/ws/run/${run_id}`);
 
-    socket.onopen = () => {
-      console.log("✅ WebSocket verbunden.");
-    };
-    socket.onerror = (e) => {
-      console.error("❌ WebSocket-Fehler", e);
-    };
-    socket.onclose = () => {
-      console.warn("🔌 WebSocket wurde geschlossen.");
-    };
+    socket.onopen = () => console.log("✅ WebSocket verbunden.");
+    socket.onerror = (e) => console.error("❌ WebSocket-Fehler", e);
+    socket.onclose = () => console.warn("🔌 WebSocket wurde geschlossen.");
 
     socket.onmessage = event => {
       const daten = JSON.parse(event.data);
       const liste = document.getElementById("liste");
+      const gruppenSummen = document.getElementById("gruppenSummen");
       liste.innerHTML = "";
+      gruppenSummen.innerHTML = "";
+
+      const gruppenMap = {};
+      const eigeneArtikel = {};
 
       daten.forEach(e => {
         const punkte = Number(e.gesamt) || 0;
-        const artikelListe = e.artikel || {}; // neues Feld erwartet
+        const artikelListe = e.artikel || {};
+
+        if (e.email === email) {
+          Object.entries(artikelListe).forEach(([k, v]) => {
+            eigeneArtikel[k] = v;
+          });
+        }
 
         const artikelText = Object.entries(artikelListe)
           .map(([k, v]) => `${k}: ${v}`)
@@ -79,17 +151,29 @@
         const li = document.createElement("li");
         li.innerText = `${e.gruppe} – ${e.email}: ${punkte} Punkte (${artikelText})`;
         liste.appendChild(li);
+
+        if (!gruppenMap[e.gruppe]) gruppenMap[e.gruppe] = 0;
+        gruppenMap[e.gruppe] += punkte;
+      });
+
+      Object.entries(gruppenMap).forEach(([gruppe, summe]) => {
+        const li = document.createElement("li");
+        li.innerText = `⭐ ${gruppe}: ${summe} Punkte`;
+        gruppenSummen.appendChild(li);
+      });
+
+      ["Bier", "Shot", "Schnaps"].forEach(art => {
+        const m = document.getElementById("menge-" + art);
+        if (m) m.innerText = eigeneArtikel[art] || 0;
       });
     };
 
-    function sende() {
+    function sendeArtikel(artikel, punkte) {
       if (!socket || socket.readyState !== WebSocket.OPEN) {
         console.warn("⚠️ WebSocket ist nicht verbunden oder bereits geschlossen.");
         return;
       }
 
-      const artikel = document.getElementById("artikel").value;
-      const punkte = parseInt(document.getElementById("punkte").value);
       const gruppe = document.getElementById("gruppe").value;
 
       const daten = {
